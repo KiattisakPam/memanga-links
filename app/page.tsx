@@ -115,7 +115,7 @@ export default function Home() {
           <div className="grid grid-cols-2 gap-3">
             {paidLinks.map((link, i) => (
               <motion.a 
-                key={i} href={link.url} target="_blank"
+                key={i} href={link.url}
                 whileHover={{ y: -3, filter: "brightness(1.2)" }}
                 whileTap={{ scale: 0.95 }}
                 transition={fastTransition}
@@ -140,7 +140,6 @@ export default function Home() {
               <motion.a 
                 key={i} 
                 href={cat.url}
-                target="_blank"
                 whileHover={{ y: -3, scale: 1.1 }}
                 transition={fastTransition}
                 className="flex flex-col items-center gap-1 opacity-80 hover:opacity-100 cursor-pointer"
@@ -155,7 +154,7 @@ export default function Home() {
             whileHover={{ scale: 1.02, boxShadow: "0 0 30px rgba(139, 0, 0, 0.5)" }} 
             whileTap={{ scale: 0.98 }}
             transition={fastTransition}
-            href="https://memanga.rf.gd" target="_blank"
+            href="https://memanga.rf.gd"
             className="relative bg-gradient-to-br from-[#8B0000] via-[#5b0000] to-[#3a0000] w-full flex items-center justify-center py-4 rounded-2xl font-black text-sm shadow-xl border border-red-900/30 overflow-hidden group"
           >
             <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
