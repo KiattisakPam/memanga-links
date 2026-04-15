@@ -59,7 +59,7 @@ export default function Home() {
   const fastTransition = { duration: 0.1, ease: "easeOut" };
 
   return (
-    <div className="h-[100dvh] bg-[#050505] text-white flex flex-col items-center justify-between px-6 py-5 overflow-hidden font-sans">
+    <div className="fixed inset-0 h-[100dvh] w-screen bg-[#050505] text-white flex flex-col items-center justify-between px-6 py-5 overflow-hidden overscroll-none font-sans">
       
       {/* Background Decor */}
       <div className="absolute top-[-5%] left-[-5%] w-[40%] h-[30%] bg-red-900/10 blur-[80px] rounded-full pointer-events-none" />
