@@ -30,7 +30,7 @@ const getMangaQuery = `*[_type == "manga"] | order(_updatedAt desc) {
 }`;
 
 export default function Home() {
-  const [allManga, setAllManga] = useState([]);
+  const [allManga, setAllManga] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("ทั้งหมด");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedManga, setSelectedManga] = useState<any>(null); 
