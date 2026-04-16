@@ -19,62 +19,65 @@ export default function MangaRow({ title, icon, items, onCardClick, onViewAll, g
   // ✨ จำกัดการโชว์ 10 เรื่องเพื่อให้โหลดไวและแถวไม่ยาวเกินไป
   const displayItems = items.slice(0, 10);
 
-  // ✨ ปรับความกว้างการ์ดให้ "เล็กและกระชับ" ขึ้นตาม Master Resizer
+  // ✨ ปรับความกว้างการ์ดให้สอดคล้องกับ Master Resizer หน้าหลัก
+  // ปรับให้ใหญ่ขึ้นกว่าเดิมเล็กน้อยเพื่อให้ Tag ขนาดใหญ่บนหน้าปกดูสวยงาม
   const dynamicWidth = {
-    4: "w-[160px] sm:w-[190px] md:w-[210px]",
-    5: "w-[140px] sm:w-[165px] md:w-[185px]",
-    6: "w-[120px] sm:w-[140px] md:w-[160px]",
-  }[gridCols as 4 | 5 | 6] || "w-[160px]";
+    4: "w-[170px] sm:w-[200px] md:w-[225px]",
+    5: "w-[145px] sm:w-[170px] md:w-[195px]",
+    6: "w-[125px] sm:w-[145px] md:w-[165px]",
+  }[gridCols as 4 | 5 | 6] || "w-[145px]";
 
   return (
     <div className="w-full mb-10 md:mb-14 group/row relative">
-      {/* --- 🏷️ Header แถว (ปรับให้เล็กลงและชิดขึ้น) --- */}
-      <div className="flex items-center justify-between mb-3.5 px-1">
-        <div className="flex items-center gap-2.5">
-          <div className="p-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-indigo-500 shadow-sm group-hover/row:border-indigo-500/40 transition-all">
-            {icon && <span className="scale-75 inline-block">{icon}</span>}
+      {/* --- 🏷️ Header แถว (Premium Indigo Style) --- */}
+      <div className="flex items-center justify-between mb-4 px-1 md:px-2">
+        <div className="flex items-center gap-3">
+          {/* Icon Box with Glow */}
+          <div className="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.1)] group-hover/row:border-indigo-500/40 transition-all duration-500">
+            {icon && <span className="scale-90 inline-block">{icon}</span>}
           </div>
           
           <div className="flex flex-col">
-            <h2 className="text-sm md:text-lg font-black uppercase tracking-tight italic text-white/90">
+            <h2 className="text-base md:text-xl font-black uppercase tracking-tight italic text-white/90 leading-none">
               {title}
             </h2>
-            {/* เส้นใต้แบบบางพิเศษ */}
-            <div className="h-[1px] w-4 bg-indigo-500 mt-0.5 rounded-full opacity-40 group-hover/row:w-full transition-all duration-500" />
+            {/* เส้นใต้แบบ Animated Glow */}
+            <div className="h-[1.5px] w-8 bg-indigo-500 mt-1.5 rounded-full opacity-40 group-hover/row:w-full transition-all duration-700 ease-in-out" />
           </div>
         </div>
         
         {onViewAll && (
           <button 
             onClick={onViewAll}
-            className="flex items-center gap-1 text-[9px] font-black uppercase tracking-[0.2em] text-gray-500 hover:text-white transition-all group/btn"
+            className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 hover:text-white transition-all group/btn"
           >
             <span className="border-b border-transparent group-hover/btn:border-indigo-500 transition-all pb-0.5">
               VIEW ALL
             </span>
-            <ChevronRight size={12} className="group-hover/btn:translate-x-1 transition-transform text-indigo-500" />
+            <ChevronRight size={14} className="group-hover/btn:translate-x-1.5 transition-transform text-indigo-500" />
           </button>
         )}
       </div>
 
-      {/* --- 🖼️ รายการมังฮวา (Scroll แนวนอนแบบกระชับ) --- */}
+      {/* --- 🖼️ รายการมังฮวา (Scroll แนวนอนแบบขอบจาง) --- */}
       <div className="relative group/scroll">
-        {/* Edge Fade Effect */}
-        <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-[#050505] to-transparent z-10 pointer-events-none hidden md:block opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-300" />
+        {/* Edge Fade Effect: ทำให้ขอบขวาดูนุ่มนวลเวลาเลื่อน */}
+        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#050505] via-[#050505]/20 to-transparent z-10 pointer-events-none hidden md:block opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-500" />
         
         <div 
-          className="flex gap-2.5 md:gap-3.5 overflow-x-auto pb-4 no-scrollbar snap-x scroll-px-1"
+          className="flex gap-3 md:gap-4 overflow-x-auto pb-6 no-scrollbar snap-x scroll-px-1 md:scroll-px-2"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {displayItems.map((manga, index) => (
             <motion.div 
               key={manga.slug}
-              initial={{ opacity: 0, x: 15 }}
+              initial={{ opacity: 0, x: 20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ 
-                duration: 0.3,
-                delay: index * 0.02,
+                duration: 0.4,
+                delay: index * 0.03,
+                ease: [0.22, 1, 0.36, 1]
               }}
               className={`${dynamicWidth} flex-shrink-0 snap-start transition-all duration-500`}
             >
@@ -86,7 +89,7 @@ export default function MangaRow({ title, icon, items, onCardClick, onViewAll, g
           ))}
           
           {/* ช่องว่างท้ายแถว */}
-          <div className="w-6 flex-shrink-0" />
+          <div className="w-10 flex-shrink-0" />
         </div>
       </div>
 

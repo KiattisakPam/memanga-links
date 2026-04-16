@@ -127,8 +127,8 @@ export default function Home() {
             <img src="/profile.png" className="w-full h-full object-cover rounded-full" alt="TL" />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white uppercase leading-none italic">TRANSLATE<span className="text-indigo-500">LOVER</span></h1>
-            <p className="text-indigo-400 text-[10px] font-bold tracking-[0.3em] mt-1 uppercase">แปลรักข้างหมอน</p>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white uppercase leading-none italic">แปลรักข้าง<span className="text-indigo-500">หมอน</span></h1>
+            <p className="text-indigo-400 text-[10px] font-bold tracking-[0.3em] mt-2 uppercase">งานแปลคุณภาพระดับพรีเมียม</p>
           </div>
         </div>
 
@@ -161,8 +161,8 @@ export default function Home() {
             <div className="flex items-center gap-3">
               <button onClick={() => setSelectedManga(allManga[Math.floor(Math.random() * allManga.length)])} className="p-2.5 bg-white text-black hover:bg-indigo-600 hover:text-white rounded-xl transition-all shadow-xl active:scale-90"><Shuffle size={18} /></button>
               <div className="flex items-center gap-1.5 bg-[#0D0D0D] p-1 rounded-xl border border-white/5 shadow-xl">
-                  <button onClick={() => setGridCols(6)} className={`p-2 rounded-lg transition-all ${gridCols === 6 ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:text-gray-200'}`}><Minimize2 size={16}/></button>
-                  <button onClick={() => setGridCols(4)} className={`p-2 rounded-xl transition-all ${gridCols === 4 ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:text-gray-200'}`}><Maximize2 size={16}/></button>
+                  <button onClick={() => setGridCols(6)} className={`p-2 rounded-lg transition-all ${gridCols === 6 ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:text-gray-300'}`}><Minimize2 size={16}/></button>
+                  <button onClick={() => setGridCols(4)} className={`p-2 rounded-xl transition-all ${gridCols === 4 ? 'bg-indigo-600 text-white' : 'text-gray-600 hover:text-gray-300'}`}><Maximize2 size={16}/></button>
               </div>
             </div>
           </div>
@@ -175,15 +175,15 @@ export default function Home() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="pt-4">
             <div className="flex items-center justify-between mb-12 border-l-4 border-indigo-500 pl-6">
                <div>
-                  <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white">Search Results</h2>
+                  <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white">ผลการค้นหา</h2>
                   <p className="text-gray-500 text-xs mt-1 uppercase font-bold tracking-widest">Found {processedManga.length} matching stories</p>
                </div>
-               <button onClick={() => setSearchQuery("")} className="text-[11px] font-black uppercase text-gray-500 hover:text-white transition-all underline underline-offset-4 tracking-widest">Clear Search</button>
+               <button onClick={() => setSearchQuery("")} className="text-[11px] font-black uppercase text-gray-500 hover:text-white transition-all underline underline-offset-4 tracking-widest">ล้างการค้นหา</button>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5">
               {processedManga.map((m: any) => <MangaCard key={m.slug} manga={m} onClick={() => setSelectedManga(m)} />)}
             </div>
-            {processedManga.length === 0 && <p className="text-center py-40 text-gray-600 font-bold italic uppercase tracking-widest">No results found...</p>}
+            {processedManga.length === 0 && <p className="text-center py-40 text-gray-600 font-bold italic uppercase tracking-widest">ไม่พบผลการค้นหา...</p>}
           </motion.div>
         ) : (
           /* --- 🏠 NORMAL HOME MODE --- */
@@ -223,7 +223,7 @@ export default function Home() {
       </div>
 
       <footer className="mt-40 opacity-20 text-[9px] font-black tracking-[1.5em] uppercase text-center border-t border-white/5 pt-24 w-full">
-        TRANSLATELOVER • 2026
+        แปลรักข้างหมอน • PREMIUM QUALITY • 2026
       </footer>
 
       {/* --- 🚨 GLOBAL DETAIL MODAL --- */}
