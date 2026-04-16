@@ -1,12 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // 1. ข้ามการเช็ค TypeScript ตอน Build เพื่อให้ผ่านง่ายขึ้น (ตามที่แอดมินต้องการ)
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-
-  // 2. ตั้งค่าให้เว็บอนุญาตโหลดรูปภาพจาก Sanity (สำคัญมาก! ถ้าไม่ใส่รูปจะไม่ขึ้น)
+  // 1. อนุญาตให้โหลดรูปจาก Sanity (ห้ามลบเด็ดขาด)
   images: {
     remotePatterns: [
       {
@@ -17,10 +12,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-
-  /* หมายเหตุ: ส่วน eslint: { ignoreDuringBuilds: true } ถูกถอดออก 
-     เพราะ Next.js v16 ไม่รองรับในคอนฟิกแล้ว
-  */
+  
+  // ลบส่วน eslint และ typescript ออกไปเลยครับ เพราะเราไปสั่งปิดที่ package.json แล้ว
 };
 
 export default nextConfig;
