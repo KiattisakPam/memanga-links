@@ -58,7 +58,7 @@ interface MangaProps {
   relativeTime?: string | null;
 }
 
-// --- 🎨 Detailed Suggestion Card (Fix: ชื่อเรื่องชิดขอบบนรูป) ---
+// --- 🎨 Detailed Suggestion Card (EP อยู่ขวา + ชื่อเรื่องชิดขอบบนรูป) ---
 const DetailedSuggestion = ({ item, onMangaSwap, getRedirectUrl }: any) => {
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -76,19 +76,16 @@ const DetailedSuggestion = ({ item, onMangaSwap, getRedirectUrl }: any) => {
       className="cursor-pointer flex flex-col gap-3 p-3 bg-white/[0.03] border border-white/5 rounded-2xl hover:bg-indigo-500/10 transition-all group/item shadow-lg"
     >
       <div className="flex gap-4 items-start">
-        {/* รูปปกขนาดใหญ่และคลีน */}
         <div className="relative w-20 h-28 sm:w-24 sm:h-34 flex-shrink-0 rounded-xl overflow-hidden shadow-xl border border-white/5">
           <img src={item.coverUrl} className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500" alt="" />
         </div>
         
-        {/* ✨ Text Area: ปรับ pt-0 และเอา justify-center ออกเพื่อให้ชิดบน ✨ */}
-        <div className="flex flex-col flex-1 min-w-0 pt-0.5">
+        <div className="flex flex-col flex-1 min-w-0 pt-0">
           <h5 className="text-[11px] sm:text-[14px] font-bold text-gray-100 line-clamp-2 uppercase italic mb-1 leading-tight transition-colors group-hover/item:text-indigo-400">
             {item.title}
           </h5>
           <p className="text-[9px] text-gray-500 uppercase truncate mb-2.5 opacity-60 font-medium">{item.englishTitle}</p>
           
-          {/* แถบสถานะ + EP */}
           <div className="flex flex-wrap gap-1.5 mb-2.5 items-center">
               <span className="text-[8px] bg-red-600 text-white px-1.5 py-0.5 rounded font-black uppercase shadow-sm border border-white/10">
                 EP.{item.latestChapter || '??'}
@@ -109,7 +106,6 @@ const DetailedSuggestion = ({ item, onMangaSwap, getRedirectUrl }: any) => {
         </div>
       </div>
 
-      {/* Reading Buttons Area */}
       <div className="grid grid-cols-2 gap-1.5" onClick={(e) => e.stopPropagation()}>
           {item.mangaLinks?.slice(0, 2).map((link: any) => (
               <a 
@@ -160,30 +156,32 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 overflow-hidden">
+    <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 pt-14 sm:pt-4 overflow-hidden">
+      {/* Background Overlay (Click to close) */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/98 backdrop-blur-xl" />
       
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 30 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-4xl bg-[#0D0D0D] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl z-[110] flex flex-col max-h-[94vh]"
+        className="relative w-full max-w-4xl bg-[#0D0D0D] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl z-[110] flex flex-col max-h-[85vh] sm:max-h-[94vh]"
       >
-        {/* ✨ Close Button: ลอยอยู่บนสุด ไม่บังเนื้อหา ✨ */}
-        <div className="absolute top-0 right-0 p-5 z-[140]">
-          <button onClick={onClose} className="p-2.5 bg-white/10 hover:bg-red-600 rounded-full transition-all border border-white/10 active:scale-90 shadow-xl backdrop-blur-md">
-            <X size={20} />
-          </button>
+        
+        {/* ✨ STEP 1: PULL BAR HANDLE (เอากากบาทออก แล้วใส่แถบจับเลื่อนปิดแทน) ✨ */}
+        <div onClick={onClose} className="w-full pt-4 pb-2 cursor-pointer group flex justify-center sticky top-0 bg-[#0D0D0D] z-[140]">
+           <div className="w-12 h-1.5 bg-white/10 group-hover:bg-white/30 rounded-full transition-colors" />
         </div>
 
-        <div className="overflow-y-auto custom-vertical-scrollbar p-5 md:p-10 space-y-4 md:space-y-5">
+        <div className="overflow-y-auto custom-vertical-scrollbar p-5 md:p-10 pt-2 space-y-4 md:space-y-5">
           
           {/* 1. HEADER SECTION (Side-by-Side) */}
           <div className="flex flex-row gap-4 md:gap-8 items-start relative">
+            {/* Left: Cover */}
             <div className="w-32 sm:w-48 md:w-60 flex-shrink-0 relative group/cover">
                <img src={manga.coverUrl} className="w-full aspect-[3/4.2] object-cover rounded-2xl md:rounded-[2.5rem] shadow-2xl border border-white/10" alt="" />
             </div>
             
-            <div className="flex-1 flex flex-col items-start text-left pt-1 sm:pt-2 min-w-0 pr-10 md:pr-0">
+            {/* Right: Info Area (ชื่อเรื่องจะเกาะขอบบนรูปปก) */}
+            <div className="flex-1 flex flex-col items-start text-left pt-0 min-w-0 pr-2">
                <div className="mb-2 w-full">
                   <h2 className="text-base sm:text-2xl md:text-3xl font-black italic uppercase leading-[1.1] text-white tracking-tighter break-words line-clamp-2">
                     {manga.title}
@@ -201,7 +199,7 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
                
                <div className="flex flex-wrap gap-1.5 mb-4">
                   {manga.genres?.slice(0, 4).map((g) => (
-                    <span key={g} className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase border border-white/5 px-2.5 py-1 rounded-lg hover:text-indigo-400 transition-all cursor-default"># {g}</span>
+                    <span key={g} className="text-[8px] sm:text-[9px] text-gray-400 font-bold uppercase border border-white/5 px-2.5 py-1 rounded-lg hover:text-indigo-400 transition-all cursor-default"># {g}</span>
                   ))}
                </div>
 
@@ -211,7 +209,7 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
             </div>
           </div>
 
-          {/* 2. SYNOPSIS */}
+          {/* 2. SYNOPSIS: อยู่ด้านล่างเต็มความกว้าง */}
           <div className="bg-white/[0.02] p-5 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] border border-white/5 relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-1 h-full bg-indigo-600 opacity-40 group-hover:opacity-100 transition-opacity" />
             <h4 className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em] mb-2">Synopsis / เรื่องย่อ</h4>
@@ -220,7 +218,7 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
             </p>
           </div>
 
-          {/* 3. READING CHANNEL (2 คอลัมน์) */}
+          {/* 3. READING CHANNEL */}
           <div className="space-y-3">
              <h4 className="text-[10px] sm:text-[11px] font-black text-white/40 uppercase tracking-[0.2em] flex items-center gap-2 ml-1">
                 <ExternalLink size={14} className="text-red-500" /> เลือกช่องทางการอ่าน
@@ -239,14 +237,14 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
              </div>
           </div>
 
-          {/* 4. LOWER SECTION: Suggestions (EP ย้ายมาขวา ขยายปก ชิดบน) */}
+          {/* 4. LOWER SECTION: Suggestions */}
           <div className="grid md:grid-cols-2 gap-6 border-t border-white/5 pt-6">
             <div className="space-y-4">
               <h4 className="text-[10px] sm:text-[11px] font-black text-blue-500 uppercase tracking-[0.4em] flex items-center gap-3 ml-2"><Info size={16} /> รูปแบบอื่น</h4>
               <div className="grid grid-cols-1 gap-3">
                 {manga.relatedStories?.length ? manga.relatedStories.map((rel: any) => (
                   <DetailedSuggestion key={rel.slug} item={rel} onMangaSwap={onMangaSwap} getRedirectUrl={getRedirectUrl} />
-                )) : <div className="py-6 text-center border border-dashed border-white/5 rounded-2xl text-gray-700 text-[10px] font-bold uppercase tracking-widest">No Related Data</div>}
+                )) : <div className="py-6 text-center border border-dashed border-white/5 rounded-2xl text-gray-700 text-[9px] font-bold uppercase tracking-widest">No Related Data</div>}
               </div>
             </div>
 
@@ -271,6 +269,7 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
           </div>
         </div>
 
+        {/* Custom Premium Scrollbar */}
         <style jsx global>{`
           .custom-vertical-scrollbar::-webkit-scrollbar { width: 4px; }
           .custom-vertical-scrollbar::-webkit-scrollbar-track { background: transparent; }
