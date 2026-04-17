@@ -3,19 +3,20 @@ import { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 type Props = {
-  params: { slug: string };
+  params: Promise<{ slug: string }>; // ✨ ปรับเป็น Promise
 };
 
 // ✨ ฟังก์ชันสำหรับดึงข้อมูลมาทำ SEO/Social Share
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params; // ✨ ต้อง await params ก่อนนำไปใช้
+  
   const query = `*[_type == "manga" && slug.current == $slug][0]{
     title,
-    englishTitle,
     description,
     "coverUrl": cover.asset->url
   }`;
   
-  const manga = await client.fetch(query, { slug: params.slug });
+  const manga = await client.fetch(query, { slug });
 
   if (!manga) return { title: "Manga Not Found | แปลรักข้างหมอน" };
 
@@ -25,7 +26,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: manga.title,
       description: manga.description,
-      images: [manga.coverUrl],
+      images: [
+        {
+          url: manga.coverUrl,
+          width: 800,
+          height: 1200,
+          alt: manga.title,
+        },
+      ],
       type: "website",
     },
     twitter: {
@@ -37,9 +45,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function MangaPage({ params }: Props) {
-  // หน้าหนี้มีไว้เพื่อ SEO เท่านั้น เมื่อคนกดเข้ามา ให้ส่งกลับหน้าแรกพร้อมเปิด Modal (ถ้าทำระบบ Modal แบบ URL ไว้)
-  // หรือจะสร้างหน้า Detail สวยๆ ที่นี่ก็ได้ แต่เบื้องต้นให้ Redirect กลับหน้าหลักครับ
-  redirect(`/?open=${params.slug}`);
+export default async function MangaPage({ params }: Props) {
+  const { slug } = await params; // ✨ await ตรงนี้ด้วย
+  
+  // ส่งกลับหน้าหลักพร้อมสั่งเปิด Modal
+  redirect(`/?open=${slug}`);
 }
 
