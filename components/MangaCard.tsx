@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { motion } from "framer-motion";
+import { motion, useAnimation } from "framer-motion"; // เพิ่ม useAnimation
 import { 
   X, 
   ExternalLink, 
@@ -58,7 +58,7 @@ interface MangaProps {
   relativeTime?: string | null;
 }
 
-// --- 🎨 Detailed Suggestion Card (EP อยู่ขวา + ชื่อเรื่องชิดขอบบนรูป) ---
+// --- 🎨 Detailed Suggestion Card ---
 const DetailedSuggestion = ({ item, onMangaSwap, getRedirectUrl }: any) => {
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -150,37 +150,48 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
         <img src={manga.coverUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy" />
         {relativeTime && <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded text-[9px] font-bold text-gray-300 border border-white/5 z-10">{relativeTime}</div>}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end p-4 md:p-6"><span className="text-[12px] md:text-[14px] font-bold leading-tight line-clamp-2 text-white italic uppercase tracking-tighter">{manga.title}</span></div>
-        {manga.mangaType === 'r18' && <div className="absolute bottom-2.5 right-2.5 z-10 bg-red-600/90 backdrop-blur-md text-[10px] md:text-[12px] font-black px-2 py-0.5 rounded shadow-xl text-white border border-white/20">18+</div>}
+        {manga.mangaType === 'r18' && <div className="absolute bottom-2.5 right-2.5 z-10 bg-red-600/90 backdrop-blur-md text-[10px] md:text-[12px] font-black px-2 py-0.5 rounded shadow-2xl text-white border border-white/20">18+</div>}
       </motion.div>
     );
   }
 
+  // --- 🚨 Yaksha Clone Modal (Swipe to Close Version) ---
   return (
-    <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 pt-14 sm:pt-4 overflow-hidden">
+    <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 pt-14 sm:pt-4 overflow-hidden bg-black/80 backdrop-blur-md">
       {/* Background Overlay (Click to close) */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/98 backdrop-blur-xl" />
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/20" />
       
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 30 }}
+        drag="y" // ✨ เปิดใช้งานการลากแนวตั้ง
+        dragConstraints={{ top: 0, bottom: 500 }} // ✨ ล็อคไม่ให้ลากขึ้น แต่ลากลงได้
+        dragElastic={0.2}
+        onDragEnd={(_, info) => {
+          // ✨ ถ้าลากลงมาเกิน 150px หรือสะบัดลงแรง (Velocity > 500) ให้ปิด
+          if (info.offset.y > 150 || info.velocity.y > 500) {
+            onClose?.();
+          }
+        }}
+        initial={{ opacity: 0, scale: 0.95, y: 30 }} 
+        animate={{ opacity: 1, scale: 1, y: 0 }} 
+        exit={{ opacity: 0, scale: 0.95, y: 30 }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-4xl bg-[#0D0D0D] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl z-[110] flex flex-col max-h-[85vh] sm:max-h-[94vh]"
+        className="relative w-full max-w-4xl bg-[#0D0D0D] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-[0_50px_100px_rgba(0,0,0,0.8)] z-[110] flex flex-col max-h-[85vh] sm:max-h-[94vh] touch-none"
       >
         
-        {/* ✨ STEP 1: PULL BAR HANDLE (เอากากบาทออก แล้วใส่แถบจับเลื่อนปิดแทน) ✨ */}
-        <div onClick={onClose} className="w-full pt-4 pb-2 cursor-pointer group flex justify-center sticky top-0 bg-[#0D0D0D] z-[140]">
-           <div className="w-12 h-1.5 bg-white/10 group-hover:bg-white/30 rounded-full transition-colors" />
+        {/* ✨ Drag Handle Bar: แถบจับเลื่อนปิด ✨ */}
+        <div className="w-full pt-4 pb-2 cursor-grab active:cursor-grabbing group flex justify-center sticky top-0 bg-[#0D0D0D] z-[140]">
+           <div className="w-14 h-1.5 bg-white/10 group-hover:bg-white/30 rounded-full transition-colors" />
         </div>
 
-        <div className="overflow-y-auto custom-vertical-scrollbar p-5 md:p-10 pt-2 space-y-4 md:space-y-5">
+        {/* ส่วนเนื้อหาภายในต้องใส่ touch-pan-y เพื่อให้ยังสกรอลล์อ่านได้ปกติ */}
+        <div className="overflow-y-auto custom-vertical-scrollbar p-5 md:p-10 pt-2 space-y-4 md:space-y-5 touch-pan-y">
           
-          {/* 1. HEADER SECTION (Side-by-Side) */}
+          {/* 1. HEADER SECTION */}
           <div className="flex flex-row gap-4 md:gap-8 items-start relative">
-            {/* Left: Cover */}
             <div className="w-32 sm:w-48 md:w-60 flex-shrink-0 relative group/cover">
                <img src={manga.coverUrl} className="w-full aspect-[3/4.2] object-cover rounded-2xl md:rounded-[2.5rem] shadow-2xl border border-white/10" alt="" />
             </div>
             
-            {/* Right: Info Area (ชื่อเรื่องจะเกาะขอบบนรูปปก) */}
             <div className="flex-1 flex flex-col items-start text-left pt-0 min-w-0 pr-2">
                <div className="mb-2 w-full">
                   <h2 className="text-base sm:text-2xl md:text-3xl font-black italic uppercase leading-[1.1] text-white tracking-tighter break-words line-clamp-2">
@@ -199,7 +210,7 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
                
                <div className="flex flex-wrap gap-1.5 mb-4">
                   {manga.genres?.slice(0, 4).map((g) => (
-                    <span key={g} className="text-[8px] sm:text-[9px] text-gray-400 font-bold uppercase border border-white/5 px-2.5 py-1 rounded-lg hover:text-indigo-400 transition-all cursor-default"># {g}</span>
+                    <span key={g} className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase border border-white/5 px-2.5 py-1 rounded-lg hover:text-indigo-400 transition-all cursor-default"># {g}</span>
                   ))}
                </div>
 
@@ -209,7 +220,7 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
             </div>
           </div>
 
-          {/* 2. SYNOPSIS: อยู่ด้านล่างเต็มความกว้าง */}
+          {/* 2. SYNOPSIS */}
           <div className="bg-white/[0.02] p-5 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] border border-white/5 relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-1 h-full bg-indigo-600 opacity-40 group-hover:opacity-100 transition-opacity" />
             <h4 className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em] mb-2">Synopsis / เรื่องย่อ</h4>
@@ -244,7 +255,7 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
               <div className="grid grid-cols-1 gap-3">
                 {manga.relatedStories?.length ? manga.relatedStories.map((rel: any) => (
                   <DetailedSuggestion key={rel.slug} item={rel} onMangaSwap={onMangaSwap} getRedirectUrl={getRedirectUrl} />
-                )) : <div className="py-6 text-center border border-dashed border-white/5 rounded-2xl text-gray-700 text-[9px] font-bold uppercase tracking-widest">No Related Data</div>}
+                )) : <div className="py-6 text-center border border-dashed border-white/5 rounded-2xl text-gray-700 text-[10px] font-bold uppercase tracking-widest">No Related Data</div>}
               </div>
             </div>
 
@@ -269,7 +280,6 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
           </div>
         </div>
 
-        {/* Custom Premium Scrollbar */}
         <style jsx global>{`
           .custom-vertical-scrollbar::-webkit-scrollbar { width: 4px; }
           .custom-vertical-scrollbar::-webkit-scrollbar-track { background: transparent; }
