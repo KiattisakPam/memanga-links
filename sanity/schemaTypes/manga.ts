@@ -25,6 +25,13 @@ export const mangaType = defineType({
       description: 'ช่วยให้คนค้นเจอแม้ใช้ชื่อจากต้นทาง',
     }),
     defineField({
+      name: 'altTitles',
+      title: '🔍 ชื่อเรียกอื่นๆ (Alternative Titles)',
+      type: 'array',
+      of: [{type: 'string'}],
+      description: 'ใส่ชื่ออื่นๆ หรือชื่อเล่นที่คนมักจะใช้ค้นหา (กด Enter เพื่อเพิ่มหลายชื่อได้)',
+    }),
+    defineField({
       name: 'slug',
       title: 'URL Slug',
       type: 'slug',
@@ -127,10 +134,46 @@ export const mangaType = defineType({
       },
       initialValue: 'ongoing',
     }),
+    // ✨ เพิ่มฟิลด์: ตารางอัปเดตรายสัปดาห์ ✨
+    defineField({
+      name: 'updateDay',
+      title: '📅 วันที่ลงตอนใหม่ (Schedule)',
+      type: 'string',
+      options: {
+        list: [
+          {title: 'วันจันทร์ (Monday)', value: 'monday'},
+          {title: 'วันอังคาร (Tuesday)', value: 'tuesday'},
+          {title: 'วันพุธ (Wednesday)', value: 'wednesday'},
+          {title: 'วันพฤหัสบดี (Thursday)', value: 'thursday'},
+          {title: 'วันศุกร์ (Friday)', value: 'friday'},
+          {title: 'วันเสาร์ (Saturday)', value: 'saturday'},
+          {title: 'วันอาทิตย์ (Sunday)', value: 'sunday'},
+          {title: 'ยังไม่กำหนด (TBA)', value: 'tba'},
+        ]
+      },
+      initialValue: 'tba',
+    }),
+    defineField({
+      name: 'releaseYear',
+      title: '📅 ปีที่ออกฉาย',
+      type: 'string',
+      description: 'เช่น 2024, 2025',
+    }),
     defineField({
       name: 'latestChapter',
       title: 'ตอนล่าสุด (เช่น EP.25)',
       type: 'string',
+    }),
+    defineField({
+      name: 'chapterUpdatedAt',
+      title: '📅 วันที่อัปเดตตอนล่าสุด',
+      type: 'datetime',
+      initialValue: () => new Date().toISOString(),
+      description: 'สำคัญ: ให้กดเปลี่ยนวันที่ตรงนี้เฉพาะเวลาที่ "ลงตอนใหม่" เท่านั้น เพื่อให้ระบบเรียงลำดับในหน้าแรกถูกต้อง',
+      options: {
+        dateFormat: 'YYYY-MM-DD',
+        timeFormat: 'HH:mm',
+      }
     }),
     defineField({
       name: 'viewCount',
@@ -145,7 +188,7 @@ export const mangaType = defineType({
       initialValue: false,
     }),
 
-    // --- 🔗 ส่วนที่ 6: ช่องทางการอ่าน (เลือกสีปุ่มได้) ---
+    // --- 🔗 ส่วนที่ 6: ช่องทางการอ่าน ---
     defineField({
       name: 'mangaLinks',
       title: 'ช่องทางอ่านมังฮวา',
@@ -212,12 +255,15 @@ export const mangaType = defineType({
       subtitle: 'latestChapter',
       media: 'cover',
       type: 'mangaType',
+      updatedDate: 'chapterUpdatedAt', 
     },
-    prepare({title, subtitle, media, type}) {
+    prepare({title, subtitle, media, type, updatedDate}) {
       const typeLabel = type === 'r18' ? '🔞 R18' : '🇰🇷 Manhwa'
+      const dateStr = updatedDate ? new Date(updatedDate).toLocaleDateString('th-TH') : 'ไม่มีวันที่'
+      
       return {
         title: title || 'ยังไม่มีชื่อเรื่อง',
-        subtitle: `${typeLabel} | ${subtitle ? `ปัจจุบัน: ${subtitle}` : 'ยังไม่ได้ลงตอน'}`,
+        subtitle: `${typeLabel} | ${subtitle ? `ปัจจุบัน: ${subtitle}` : 'ยังไม่ได้ลงตอน'} (${dateStr})`,
         media: media,
       }
     },

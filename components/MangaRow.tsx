@@ -95,7 +95,8 @@ export default function MangaRow({
               <MangaCard 
                 manga={manga} 
                 onClick={() => onCardClick(manga)} 
-                relativeTime={showTime && getRelativeTime ? getRelativeTime(manga._updatedAt) : null}
+                /* ✨ แก้ไข: ให้โชว์เวลาอัปเดตโดยอิงจาก chapterUpdatedAt เป็นหลัก ✨ */
+                relativeTime={showTime && getRelativeTime ? getRelativeTime(manga.chapterUpdatedAt || manga._updatedAt) : null}
               />
             </motion.div>
           ))}

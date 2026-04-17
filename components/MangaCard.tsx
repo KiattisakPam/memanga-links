@@ -1,15 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
-import { motion, useAnimation } from "framer-motion"; // เพิ่ม useAnimation
+import { useMemo, useRef } from "react";
+import { motion } from "framer-motion";
 import { 
-  X, 
   ExternalLink, 
   BookOpen, 
-  Layers, 
-  Flame, 
   Share2, 
   Info, 
+  Flame,
   Tag as TagIcon 
 } from "lucide-react";
 import { toast } from 'sonner';
@@ -49,6 +47,7 @@ interface MangaProps {
     genres?: string[];
     relatedStories?: RelatedStory[];
     _updatedAt: string;
+    chapterUpdatedAt?: string;
   };
   onClick?: () => void;
   isGlobalModal?: boolean;
@@ -58,7 +57,7 @@ interface MangaProps {
   relativeTime?: string | null;
 }
 
-// --- 🎨 Detailed Suggestion Card ---
+// --- 🎨 Detailed Suggestion Card (Fix: ชื่อเรื่องชิดขอบบนรูป) ---
 const DetailedSuggestion = ({ item, onMangaSwap, getRedirectUrl }: any) => {
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -93,9 +92,6 @@ const DetailedSuggestion = ({ item, onMangaSwap, getRedirectUrl }: any) => {
               <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase shadow-sm ${getStatusStyle(item.status)}`}>
                 {item.status === 'completed' ? 'จบแล้ว' : 'ปั่นอยู่'}
               </span>
-              <span className="text-[8px] text-indigo-400 font-bold uppercase border border-indigo-500/20 px-2 py-0.5 rounded-full bg-indigo-500/5">
-                {item.mangaType === 'r18' ? '18+' : 'MANHWA'}
-              </span>
           </div>
           
           <div className="flex flex-wrap gap-1">
@@ -124,7 +120,7 @@ const DetailedSuggestion = ({ item, onMangaSwap, getRedirectUrl }: any) => {
 };
 
 export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMangaSwap, allManga, relativeTime }: MangaProps) {
-  
+  const containerRef = useRef(null);
   const statusColors: any = { hot: 'bg-orange-500', ongoing: 'bg-emerald-500', hiatus: 'bg-amber-500', completed: 'bg-indigo-500' };
   const getRedirectUrl = (targetUrl: string) => `/redirect?url=${encodeURIComponent(targetUrl)}`;
 
@@ -150,43 +146,44 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
         <img src={manga.coverUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy" />
         {relativeTime && <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded text-[9px] font-bold text-gray-300 border border-white/5 z-10">{relativeTime}</div>}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end p-4 md:p-6"><span className="text-[12px] md:text-[14px] font-bold leading-tight line-clamp-2 text-white italic uppercase tracking-tighter">{manga.title}</span></div>
-        {manga.mangaType === 'r18' && <div className="absolute bottom-2.5 right-2.5 z-10 bg-red-600/90 backdrop-blur-md text-[10px] md:text-[12px] font-black px-2 py-0.5 rounded shadow-2xl text-white border border-white/20">18+</div>}
+        {manga.mangaType === 'r18' && <div className="absolute bottom-2.5 right-2.5 z-10 bg-red-600/90 backdrop-blur-md text-[10px] md:text-[12px] font-black px-2 py-0.5 rounded shadow-xl text-white border border-white/20">18+</div>}
       </motion.div>
     );
   }
 
-  // --- 🚨 Yaksha Clone Modal (Swipe to Close Version) ---
   return (
-    <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 pt-14 sm:pt-4 overflow-hidden bg-black/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-2 sm:p-4 pt-12 sm:pt-4 overflow-hidden bg-black/80 backdrop-blur-md">
       {/* Background Overlay (Click to close) */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-black/20" />
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-transparent" />
       
       <motion.div
-        drag="y" // ✨ เปิดใช้งานการลากแนวตั้ง
-        dragConstraints={{ top: 0, bottom: 500 }} // ✨ ล็อคไม่ให้ลากขึ้น แต่ลากลงได้
-        dragElastic={0.2}
+        drag="y" // ✨ เปิดระบบลากแนวตั้ง
+        dragConstraints={{ top: 0, bottom: 800 }} // ✨ ล็อคขอบบนไว้ ปล่อยลากลงล่างได้ยาวๆ
+        dragElastic={0.6} // ✨ เพิ่มความหนึบและติดมือ (High Elasticity)
         onDragEnd={(_, info) => {
-          // ✨ ถ้าลากลงมาเกิน 150px หรือสะบัดลงแรง (Velocity > 500) ให้ปิด
-          if (info.offset.y > 150 || info.velocity.y > 500) {
+          // ✨ ปิดถ้าลากลงเกิน 120px หรือสะบัดนิ้วลงเร็วๆ (Velocity > 450)
+          if (info.offset.y > 120 || info.velocity.y > 450) {
             onClose?.();
           }
         }}
-        initial={{ opacity: 0, scale: 0.95, y: 30 }} 
+        initial={{ opacity: 0, scale: 0.95, y: 50 }} 
         animate={{ opacity: 1, scale: 1, y: 0 }} 
-        exit={{ opacity: 0, scale: 0.95, y: 30 }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-4xl bg-[#0D0D0D] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-[0_50px_100px_rgba(0,0,0,0.8)] z-[110] flex flex-col max-h-[85vh] sm:max-h-[94vh] touch-none"
+        exit={{ opacity: 0, y: 800, transition: { duration: 0.3 } }} // ตอนปิดให้ปลิวลงล่าง
+        transition={{ type: "spring", damping: 25, stiffness: 280 }}
+        className="relative w-full max-w-4xl bg-[#0D0D0D] border border-white/10 rounded-t-[2.5rem] sm:rounded-[2.5rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,1)] z-[110] flex flex-col max-h-[88vh] sm:max-h-[94vh] touch-none"
+        style={{ overscrollBehavior: 'contain' }} // ✨ ไม้ตายแก้ดึงแล้วรีเฟรชเว็บ
       >
         
-        {/* ✨ Drag Handle Bar: แถบจับเลื่อนปิด ✨ */}
-        <div className="w-full pt-4 pb-2 cursor-grab active:cursor-grabbing group flex justify-center sticky top-0 bg-[#0D0D0D] z-[140]">
-           <div className="w-14 h-1.5 bg-white/10 group-hover:bg-white/30 rounded-full transition-colors" />
+        {/* ✨ Drag handle zone: ขยายพื้นที่ให้จับง่ายขึ้น ครอบคลุมทั้งแถบบน ✨ */}
+        <div onClick={onClose} className="w-full pt-4 pb-5 cursor-grab active:cursor-grabbing flex flex-col items-center sticky top-0 bg-[#0D0D0D] z-[140] border-b border-white/[0.02]">
+           <div className="w-16 h-1.5 bg-white/10 group-hover:bg-white/20 rounded-full transition-colors mb-1.5" />
+           <span className="text-[7px] font-black text-white/5 uppercase tracking-[0.4em]">Slide to close Story</span>
         </div>
 
-        {/* ส่วนเนื้อหาภายในต้องใส่ touch-pan-y เพื่อให้ยังสกรอลล์อ่านได้ปกติ */}
-        <div className="overflow-y-auto custom-vertical-scrollbar p-5 md:p-10 pt-2 space-y-4 md:space-y-5 touch-pan-y">
+        {/* เนื้อหาด้านใน: touch-pan-y ช่วยให้แยกการลากปิดกับการสกรอลล์อ่านออกจากกัน */}
+        <div className="overflow-y-auto custom-vertical-scrollbar p-5 md:p-10 pt-2 space-y-4 md:space-y-6 touch-pan-y">
           
-          {/* 1. HEADER SECTION */}
+          {/* 1. HEADER SECTION (Side-by-Side) */}
           <div className="flex flex-row gap-4 md:gap-8 items-start relative">
             <div className="w-32 sm:w-48 md:w-60 flex-shrink-0 relative group/cover">
                <img src={manga.coverUrl} className="w-full aspect-[3/4.2] object-cover rounded-2xl md:rounded-[2.5rem] shadow-2xl border border-white/10" alt="" />
@@ -210,7 +207,7 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
                
                <div className="flex flex-wrap gap-1.5 mb-4">
                   {manga.genres?.slice(0, 4).map((g) => (
-                    <span key={g} className="text-[8px] sm:text-[9px] text-gray-500 font-bold uppercase border border-white/5 px-2.5 py-1 rounded-lg hover:text-indigo-400 transition-all cursor-default"># {g}</span>
+                    <span key={g} className="text-[8px] sm:text-[9px] text-gray-400 font-bold uppercase border border-white/5 px-2.5 py-1 rounded-lg hover:text-indigo-400 transition-all cursor-default"># {g}</span>
                   ))}
                </div>
 
@@ -280,6 +277,7 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
           </div>
         </div>
 
+        {/* ✨ Style สำหรับ Premium Vertical Scrollbar ✨ */}
         <style jsx global>{`
           .custom-vertical-scrollbar::-webkit-scrollbar { width: 4px; }
           .custom-vertical-scrollbar::-webkit-scrollbar-track { background: transparent; }
