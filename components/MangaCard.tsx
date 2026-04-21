@@ -1,14 +1,16 @@
 "use client";
 
-import { useMemo, useRef } from "react";
-import { motion } from "framer-motion";
+import { useMemo, useRef, useState } from "react"; // ✨ เพิ่ม useState
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   ExternalLink, 
   BookOpen, 
   Share2, 
   Info, 
   Flame,
-  Tag as TagIcon 
+  Tag as TagIcon,
+  ChevronDown, // ✨ เพิ่มไอคอน
+  ChevronUp 
 } from "lucide-react";
 import { toast } from 'sonner';
 
@@ -57,7 +59,7 @@ interface MangaProps {
   relativeTime?: string | null;
 }
 
-// --- 🎨 Detailed Suggestion Card (Fix: ชื่อเรื่องชิดขอบบนรูป) ---
+// --- 🎨 Detailed Suggestion Card ---
 const DetailedSuggestion = ({ item, onMangaSwap, getRedirectUrl }: any) => {
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -120,7 +122,7 @@ const DetailedSuggestion = ({ item, onMangaSwap, getRedirectUrl }: any) => {
 };
 
 export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMangaSwap, allManga, relativeTime }: MangaProps) {
-  const containerRef = useRef(null);
+  const [isExpanded, setIsExpanded] = useState(false); // ✨ State สำหรับย่อขยายเรื่องย่อ
   const statusColors: any = { hot: 'bg-orange-500', ongoing: 'bg-emerald-500', hiatus: 'bg-amber-500', completed: 'bg-indigo-500' };
   const getRedirectUrl = (targetUrl: string) => `/redirect?url=${encodeURIComponent(targetUrl)}`;
 
@@ -153,37 +155,33 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
 
   return (
     <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-2 sm:p-4 pt-12 sm:pt-4 overflow-hidden bg-black/80 backdrop-blur-md">
-      {/* Background Overlay (Click to close) */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-transparent" />
       
       <motion.div
-        drag="y" // ✨ เปิดระบบลากแนวตั้ง
-        dragConstraints={{ top: 0, bottom: 800 }} // ✨ ล็อคขอบบนไว้ ปล่อยลากลงล่างได้ยาวๆ
-        dragElastic={0.6} // ✨ เพิ่มความหนึบและติดมือ (High Elasticity)
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 800 }}
+        dragElastic={0.6}
         onDragEnd={(_, info) => {
-          // ✨ ปิดถ้าลากลงเกิน 120px หรือสะบัดนิ้วลงเร็วๆ (Velocity > 450)
           if (info.offset.y > 120 || info.velocity.y > 450) {
             onClose?.();
           }
         }}
         initial={{ opacity: 0, scale: 0.95, y: 50 }} 
         animate={{ opacity: 1, scale: 1, y: 0 }} 
-        exit={{ opacity: 0, y: 800, transition: { duration: 0.3 } }} // ตอนปิดให้ปลิวลงล่าง
+        exit={{ opacity: 0, y: 800, transition: { duration: 0.3 } }} 
         transition={{ type: "spring", damping: 25, stiffness: 280 }}
         className="relative w-full max-w-4xl bg-[#0D0D0D] border border-white/10 rounded-t-[2.5rem] sm:rounded-[2.5rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,1)] z-[110] flex flex-col max-h-[88vh] sm:max-h-[94vh] touch-none"
-        style={{ overscrollBehavior: 'contain' }} // ✨ ไม้ตายแก้ดึงแล้วรีเฟรชเว็บ
+        style={{ overscrollBehavior: 'contain' }}
       >
         
-        {/* ✨ Drag handle zone: ขยายพื้นที่ให้จับง่ายขึ้น ครอบคลุมทั้งแถบบน ✨ */}
         <div onClick={onClose} className="w-full pt-4 pb-5 cursor-grab active:cursor-grabbing flex flex-col items-center sticky top-0 bg-[#0D0D0D] z-[140] border-b border-white/[0.02]">
            <div className="w-16 h-1.5 bg-white/10 group-hover:bg-white/20 rounded-full transition-colors mb-1.5" />
            <span className="text-[7px] font-black text-white/5 uppercase tracking-[0.4em]">Slide to close Story</span>
         </div>
 
-        {/* เนื้อหาด้านใน: touch-pan-y ช่วยให้แยกการลากปิดกับการสกรอลล์อ่านออกจากกัน */}
         <div className="overflow-y-auto custom-vertical-scrollbar p-5 md:p-10 pt-2 space-y-4 md:space-y-6 touch-pan-y">
           
-          {/* 1. HEADER SECTION (Side-by-Side) */}
+          {/* 1. HEADER SECTION */}
           <div className="flex flex-row gap-4 md:gap-8 items-start relative">
             <div className="w-32 sm:w-48 md:w-60 flex-shrink-0 relative group/cover">
                <img src={manga.coverUrl} className="w-full aspect-[3/4.2] object-cover rounded-2xl md:rounded-[2.5rem] shadow-2xl border border-white/10" alt="" />
@@ -217,13 +215,36 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
             </div>
           </div>
 
-          {/* 2. SYNOPSIS */}
+          {/* 2. SYNOPSIS (✨ เพิ่มระบบย่อขยาย) */}
           <div className="bg-white/[0.02] p-5 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] border border-white/5 relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-1 h-full bg-indigo-600 opacity-40 group-hover:opacity-100 transition-opacity" />
             <h4 className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em] mb-2">Synopsis / เรื่องย่อ</h4>
-            <p className="text-gray-400 text-[12px] md:text-[14px] leading-relaxed italic font-medium opacity-90 line-clamp-4 md:line-clamp-none">
-              "{manga.description || "แอดมินกำลังเดินทางข้ามมิติไปเขียนเรื่องย่อให้ครับ..."}"
-            </p>
+            
+            <div className="relative">
+              <p className={`text-gray-400 text-[12px] md:text-[14px] leading-relaxed italic font-medium opacity-90 transition-all duration-500 ${!isExpanded ? 'line-clamp-4' : ''}`}>
+                "{manga.description || "แอดมินกำลังเดินทางข้ามมิติไปเขียนเรื่องย่อให้ครับ..."}"
+              </p>
+              
+              {/* ✨ ปุ่มย่อขยายพรีเมียม ✨ */}
+              {manga.description && manga.description.length > 150 && (
+                <button 
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="mt-3 flex items-center gap-1.5 text-[10px] font-black text-indigo-500 uppercase tracking-widest hover:text-indigo-400 transition-colors group/btn"
+                >
+                  {isExpanded ? (
+                    <>
+                      <ChevronUp size={14} className="group-hover/btn:-translate-y-0.5 transition-transform" /> 
+                      Show Less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown size={14} className="group-hover/btn:translate-y-0.5 transition-transform" /> 
+                      Read Full Story
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
 
           {/* 3. READING CHANNEL */}
@@ -277,7 +298,7 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
           </div>
         </div>
 
-        {/* ✨ Style สำหรับ Premium Vertical Scrollbar ✨ */}
+        {/* Custom Premium Scrollbar */}
         <style jsx global>{`
           .custom-vertical-scrollbar::-webkit-scrollbar { width: 4px; }
           .custom-vertical-scrollbar::-webkit-scrollbar-track { background: transparent; }
