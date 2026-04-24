@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react"; // ✨ เพิ่ม useState
+import { useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ExternalLink, 
@@ -9,10 +9,12 @@ import {
   Info, 
   Flame,
   Tag as TagIcon,
-  ChevronDown, // ✨ เพิ่มไอคอน
+  ChevronDown,
   ChevronUp 
 } from "lucide-react";
 import { toast } from 'sonner';
+// ✨ Import สำหรับส่งข้อมูลสถิติ
+import { sendGAEvent } from '@next/third-parties/google'; 
 
 interface MangaLink {
   platform: string;
@@ -40,7 +42,7 @@ interface MangaProps {
     slug: string;
     coverUrl: string;
     mangaType?: string;
-    status: 'hot' | 'ongoing' | 'hiatus' | 'completed';
+    status: string; // ✨ ปรับเป็น string เพื่อรองรับข้อความจาก Sanity
     latestChapter?: string;
     mangaLinks?: MangaLink[];
     novelUrl?: string;
@@ -59,16 +61,17 @@ interface MangaProps {
   relativeTime?: string | null;
 }
 
+// ✨ Helper สำหรับเช็กสถานะเรื่อง (จบ/ไม่จบ)
+const isCompleted = (status: string) => status === 'completed' || status === '✅ จบสมบูรณ์ (Completed)';
+
 // --- 🎨 Detailed Suggestion Card ---
 const DetailedSuggestion = ({ item, onMangaSwap, getRedirectUrl }: any) => {
   const getStatusStyle = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-indigo-600 text-white';
-      case 'ongoing': return 'bg-emerald-600 text-white';
-      case 'hot': return 'bg-orange-600 text-white';
-      case 'hiatus': return 'bg-amber-600 text-white';
-      default: return 'bg-white/10 text-gray-400';
-    }
+    if (isCompleted(status)) return 'bg-indigo-600 text-white';
+    if (status === 'ongoing' || status === '🚩 ปั่นตอนใหม่ (Ongoing)') return 'bg-emerald-600 text-white';
+    if (status === 'hot' || status === '🔥 HOT (อัปเดตเดือด)') return 'bg-orange-600 text-white';
+    if (status === 'hiatus' || status === '⏳ พักซีซั่น (Hiatus)') return 'bg-amber-600 text-white';
+    return 'bg-white/10 text-gray-400';
   };
 
   return (
@@ -78,7 +81,7 @@ const DetailedSuggestion = ({ item, onMangaSwap, getRedirectUrl }: any) => {
     >
       <div className="flex gap-4 items-start">
         <div className="relative w-20 h-28 sm:w-24 sm:h-34 flex-shrink-0 rounded-xl overflow-hidden shadow-xl border border-white/5">
-          <img src={item.coverUrl} className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500" alt="" />
+          <img src={item.coverUrl} className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500" alt={item.title} />
         </div>
         
         <div className="flex flex-col flex-1 min-w-0 pt-0">
@@ -92,7 +95,7 @@ const DetailedSuggestion = ({ item, onMangaSwap, getRedirectUrl }: any) => {
                 EP.{item.latestChapter || '??'}
               </span>
               <span className={`text-[8px] px-2 py-0.5 rounded-full font-black uppercase shadow-sm ${getStatusStyle(item.status)}`}>
-                {item.status === 'completed' ? 'จบแล้ว' : 'ปั่นอยู่'}
+                {isCompleted(item.status) ? 'จบแล้ว' : 'ปั่นอยู่'}
               </span>
           </div>
           
@@ -103,33 +106,41 @@ const DetailedSuggestion = ({ item, onMangaSwap, getRedirectUrl }: any) => {
           </div>
         </div>
       </div>
-
-      <div className="grid grid-cols-2 gap-1.5" onClick={(e) => e.stopPropagation()}>
-          {item.mangaLinks?.slice(0, 2).map((link: any) => (
-              <a 
-                key={link.platform} 
-                href={getRedirectUrl(link.url)} 
-                target="_blank" 
-                style={{ backgroundColor: link.btnColor || '#333' }}
-                className="py-1.5 rounded-lg text-[9px] font-black text-white text-center uppercase flex items-center justify-center gap-1 hover:brightness-125 transition-all shadow-md active:scale-95"
-              >
-                {link.platform} <ExternalLink size={10} />
-              </a>
-          ))}
-      </div>
     </div>
   );
 };
 
 export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMangaSwap, allManga, relativeTime }: MangaProps) {
-  const [isExpanded, setIsExpanded] = useState(false); // ✨ State สำหรับย่อขยายเรื่องย่อ
-  const statusColors: any = { hot: 'bg-orange-500', ongoing: 'bg-emerald-500', hiatus: 'bg-amber-500', completed: 'bg-indigo-500' };
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  // ✨ ปรับสี Status ให้รองรับค่าจาก Sanity
+  const getStatusColor = (status: string) => {
+    if (isCompleted(status)) return 'bg-indigo-500';
+    if (status === 'ongoing' || status === '🚩 ปั่นตอนใหม่ (Ongoing)') return 'bg-emerald-500';
+    if (status === 'hot' || status === '🔥 HOT (อัปเดตเดือด)') return 'bg-orange-500';
+    if (status === 'hiatus' || status === '⏳ พักซีซั่น (Hiatus)') return 'bg-amber-500';
+    return 'bg-gray-500';
+  };
+
   const getRedirectUrl = (targetUrl: string) => `/redirect?url=${encodeURIComponent(targetUrl)}`;
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(`${window.location.origin}/manga/${manga.slug}`);
+    const shareUrl = `${window.location.origin}/manga/${manga.slug}`;
+    navigator.clipboard.writeText(shareUrl);
+    
+    // ✨ ส่งสถิติไป GA4: มีคนกดแชร์เรื่องนี้
+    sendGAEvent('event', 'share_manga', { manga_title: manga.title });
+    
     toast.success("คัดลอกลิงก์สำเร็จ!", { position: "bottom-center" });
+  };
+
+  // ✨ ฟังก์ชันเก็บสถิติการคลิกไปอ่าน
+  const handleLinkClick = (platform: string) => {
+    sendGAEvent('event', 'click_reading_link', { 
+      manga_title: manga.title, 
+      platform: platform 
+    });
   };
 
   const similarStories = useMemo(() => {
@@ -144,8 +155,10 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
     return (
       <motion.div layout whileHover={{ y: -6 }} onClick={onClick} className="relative group cursor-pointer bg-[#0D0D0D] rounded-xl md:rounded-2xl overflow-hidden border border-white/5 aspect-[3/4.2] shadow-2xl mx-0.5">
         <div className="absolute top-2.5 right-2.5 z-10 bg-indigo-600 text-[10px] md:text-[12px] font-black px-2.5 py-1.5 rounded-lg shadow-xl border border-white/10 uppercase">EP.{manga.latestChapter}</div>
-        <div className={`absolute top-2.5 left-2.5 z-10 px-3 py-1.5 rounded-full text-[10px] md:text-[12px] font-black text-white ${statusColors[manga.status] || 'bg-gray-500'} shadow-xl uppercase`}>{manga.status === 'completed' ? 'จบแล้ว' : 'ปั่นอยู่'}</div>
-        <img src={manga.coverUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy" />
+        <div className={`absolute top-2.5 left-2.5 z-10 px-3 py-1.5 rounded-full text-[10px] md:text-[12px] font-black text-white ${getStatusColor(manga.status)} shadow-xl uppercase`}>
+          {isCompleted(manga.status) ? 'จบแล้ว' : 'ปั่นอยู่'}
+        </div>
+        <img src={manga.coverUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={manga.title} loading="lazy" />
         {relativeTime && <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded text-[9px] font-bold text-gray-300 border border-white/5 z-10">{relativeTime}</div>}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end p-4 md:p-6"><span className="text-[12px] md:text-[14px] font-bold leading-tight line-clamp-2 text-white italic uppercase tracking-tighter">{manga.title}</span></div>
         {manga.mangaType === 'r18' && <div className="absolute bottom-2.5 right-2.5 z-10 bg-red-600/90 backdrop-blur-md text-[10px] md:text-[12px] font-black px-2 py-0.5 rounded shadow-xl text-white border border-white/20">18+</div>}
@@ -184,7 +197,7 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
           {/* 1. HEADER SECTION */}
           <div className="flex flex-row gap-4 md:gap-8 items-start relative">
             <div className="w-32 sm:w-48 md:w-60 flex-shrink-0 relative group/cover">
-               <img src={manga.coverUrl} className="w-full aspect-[3/4.2] object-cover rounded-2xl md:rounded-[2.5rem] shadow-2xl border border-white/10" alt="" />
+               <img src={manga.coverUrl} className="w-full aspect-[3/4.2] object-cover rounded-2xl md:rounded-[2.5rem] shadow-2xl border border-white/10" alt={manga.title} />
             </div>
             
             <div className="flex-1 flex flex-col items-start text-left pt-0 min-w-0 pr-2">
@@ -199,7 +212,9 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
                
                <div className="flex flex-wrap gap-1.5 mb-3">
                   <span className="px-2.5 py-1 sm:px-4 sm:py-1.5 bg-red-600 text-[8px] sm:text-[10px] font-black rounded-lg uppercase shadow-lg">EP.{manga.latestChapter || '??'}</span>
-                  <span className={`px-2.5 py-1 sm:px-4 sm:py-1.5 ${statusColors[manga.status]} text-[8px] sm:text-[10px] font-black rounded-lg uppercase shadow-lg`}>{statusColors[manga.status] ? (manga.status === 'ongoing' ? 'ปั่นอยู่' : 'จบแล้ว') : manga.status}</span>
+                  <span className={`px-2.5 py-1 sm:px-4 sm:py-1.5 ${getStatusColor(manga.status)} text-[8px] sm:text-[10px] font-black rounded-lg uppercase shadow-lg`}>
+                    {isCompleted(manga.status) ? 'จบแล้ว' : 'ปั่นอยู่'}
+                  </span>
                   <span className="px-2.5 py-1 sm:px-4 sm:py-1.5 bg-white/5 border border-white/10 text-[8px] sm:text-[10px] font-black rounded-lg uppercase">{manga.mangaType === 'r18' ? 'ADULT' : 'MANHWA'}</span>
                </div>
                
@@ -210,12 +225,12 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
                </div>
 
                <button onClick={handleShare} className="flex items-center gap-2 px-4 py-1.5 bg-white/5 hover:bg-white/10 rounded-xl transition-all text-gray-400 hover:text-white text-[9px] sm:text-[10px] font-black border border-white/5 shadow-md">
-                 <Share2 size={12} /> แซร์เรื่องนี้
+                 <Share2 size={12} /> แชร์เรื่องนี้
                </button>
             </div>
           </div>
 
-          {/* 2. SYNOPSIS (✨ เพิ่มระบบย่อขยาย) */}
+          {/* 2. SYNOPSIS */}
           <div className="bg-white/[0.02] p-5 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] border border-white/5 relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-1 h-full bg-indigo-600 opacity-40 group-hover:opacity-100 transition-opacity" />
             <h4 className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em] mb-2">Synopsis / เรื่องย่อ</h4>
@@ -225,22 +240,15 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
                 "{manga.description || "แอดมินกำลังเดินทางข้ามมิติไปเขียนเรื่องย่อให้ครับ..."}"
               </p>
               
-              {/* ✨ ปุ่มย่อขยายพรีเมียม ✨ */}
               {manga.description && manga.description.length > 150 && (
                 <button 
                   onClick={() => setIsExpanded(!isExpanded)}
                   className="mt-3 flex items-center gap-1.5 text-[10px] font-black text-indigo-500 uppercase tracking-widest hover:text-indigo-400 transition-colors group/btn"
                 >
                   {isExpanded ? (
-                    <>
-                      <ChevronUp size={14} className="group-hover/btn:-translate-y-0.5 transition-transform" /> 
-                      Show Less
-                    </>
+                    <><ChevronUp size={14} className="group-hover/btn:-translate-y-0.5 transition-transform" /> Show Less</>
                   ) : (
-                    <>
-                      <ChevronDown size={14} className="group-hover/btn:translate-y-0.5 transition-transform" /> 
-                      Read Full Story
-                    </>
+                    <><ChevronDown size={14} className="group-hover/btn:translate-y-0.5 transition-transform" /> Read Full Story</>
                   )}
                 </button>
               )}
@@ -254,12 +262,24 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
              </h4>
              <div className="grid grid-cols-2 gap-2">
                 {manga.mangaLinks?.map((link, i) => (
-                  <a key={i} href={getRedirectUrl(link.url)} target="_blank" style={{ backgroundColor: link.btnColor || '#4f46e5' }} className="flex items-center justify-between px-5 py-2.5 rounded-xl font-black text-[10px] sm:text-[11px] uppercase shadow-lg hover:brightness-110 active:scale-95 text-white transition-all">
+                  <a 
+                    key={i} 
+                    href={getRedirectUrl(link.url)} 
+                    target="_blank" 
+                    onClick={() => handleLinkClick(link.platform)} // ✨ เก็บสถิติคนคลิกอ่าน
+                    style={{ backgroundColor: link.btnColor || '#4f46e5' }} 
+                    className="flex items-center justify-between px-5 py-2.5 rounded-xl font-black text-[10px] sm:text-[11px] uppercase shadow-lg hover:brightness-110 active:scale-95 text-white transition-all"
+                  >
                     {link.platform} <ExternalLink size={14} />
                   </a>
                 ))}
                 {manga.novelUrl && (
-                  <a href={getRedirectUrl(manga.novelUrl)} target="_blank" className="col-span-2 flex items-center justify-center gap-2 py-2.5 bg-violet-600 rounded-xl font-black text-[10px] sm:text-[11px] uppercase shadow-xl hover:bg-violet-500 text-white transition-all">
+                  <a 
+                    href={getRedirectUrl(manga.novelUrl)} 
+                    target="_blank" 
+                    onClick={() => handleLinkClick('Thai Novel')} // ✨ เก็บสถิติคนคลิกอ่านนิยาย
+                    className="col-span-2 flex items-center justify-center gap-2 py-2.5 bg-violet-600 rounded-xl font-black text-[10px] sm:text-[11px] uppercase shadow-xl hover:bg-violet-500 text-white transition-all"
+                  >
                      <BookOpen size={16} /> READ THAI NOVEL <ExternalLink size={14} />
                   </a>
                 )}
@@ -298,7 +318,6 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
           </div>
         </div>
 
-        {/* Custom Premium Scrollbar */}
         <style jsx global>{`
           .custom-vertical-scrollbar::-webkit-scrollbar { width: 4px; }
           .custom-vertical-scrollbar::-webkit-scrollbar-track { background: transparent; }

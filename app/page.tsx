@@ -6,11 +6,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Search, Flame, Crown, Zap, LayoutGrid, Shuffle, 
   ChevronLeft, ChevronRight, Plus, Square, Grid2X2, Grid3X3,
-  Calendar, Clock
+  Calendar, Clock, CheckCircle
 } from "lucide-react";
 import { Toaster } from 'sonner';
 import MangaCard from "@/components/MangaCard";
 import MangaRow from "@/components/MangaRow";
+import { sendGAEvent } from '@next/third-parties/google';
 
 // --- 🕒 Helper: คำนวณเวลาอัปเดต ---
 const getRelativeTime = (dateString: string): string => {
@@ -38,6 +39,7 @@ const getMangaQuery = `*[_type == "manga"] | order(_updatedAt desc) {
   "coverUrl": cover.asset->url,
   "bannerUrl": bannerImage.asset->url,
   updateDay,
+  status, // ✨ เพิ่มบรรทัดนี้เพื่อให้เว็บรู้จักสถานะเรื่อง
   mangaLinks[]{ platform, url, btnColor },
   relatedStories[]->{
     title, "slug": slug.current, "coverUrl": cover.asset->url,
@@ -72,6 +74,16 @@ export default function Home() {
   
   const catalogRef = useRef<HTMLDivElement>(null);
 
+  // ✨ 2. โค้ดส่งข้อมูลให้ Google Analytics เวลามีคนเปิดป๊อปอัป
+  useEffect(() => {
+    if (selectedManga) {
+      // เมื่อ selectedManga มีข้อมูล (ป๊อปอัปเด้งขึ้น) จะส่งชื่อเรื่องไปเก็บบน Google
+      sendGAEvent('event', 'view_manga', {
+        manga_title: selectedManga.title
+      });
+    }
+  }, [selectedManga]);
+
   useEffect(() => {
     client.fetch(getMangaQuery).then((data) => setAllManga(data || []));
   }, []);
@@ -86,8 +98,14 @@ export default function Home() {
   const processedManga = useMemo(() => {
     let result = allManga;
     if (activeTab !== "ทั้งหมด") {
-      const typeMap: any = { "🇰🇷 มันฮวา": "manhwa", "🔞 ติดเรท": "r18" };
-      result = result.filter((m: any) => m.mangaType === typeMap[activeTab]);
+      // ✨ เพิ่มเงื่อนไขดักจับแท็บ "จบแล้ว"
+      if (activeTab === "✅ จบแล้ว") {
+        // เช็กค่า status (แก้คำว่า "completed" ให้ตรงกับค่า Value ใน Sanity ของแอดมินนะครับ)
+        result = result.filter((m: any) => m.status === "completed" || m.status === "จบแล้ว");
+      } else {
+        const typeMap: any = { "🇰🇷 มันฮวา": "manhwa", "🔞 ติดเรท": "r18" };
+        result = result.filter((m: any) => m.mangaType === typeMap[activeTab]);
+      }
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -113,6 +131,13 @@ export default function Home() {
   }, [allManga, selectedDay]);
 
   const featuredManga = useMemo(() => allManga.filter((m: any) => m.isFeatured), [allManga]);
+  // ✨ เพิ่มชุดนี้: กรองเฉพาะเรื่องที่จบสมบูรณ์มาโชว์ 10 เรื่องล่าสุด ✨
+  const completedManga = useMemo(() => {
+    return allManga
+      .filter((m: any) => m.status === "completed" || m.status === "✅ จบสมบูรณ์ (Completed)")
+      .slice(0, 10);
+  }, [allManga]);
+
   const isSearching = searchQuery.trim().length > 0;
 
   const getGridClass = () => {
@@ -196,7 +221,7 @@ export default function Home() {
 
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
             <div className="flex gap-1.5 bg-[#111] p-1.5 rounded-2xl border border-white/5 w-full md:w-auto overflow-x-auto no-scrollbar">
-              {['ทั้งหมด', '🇰🇷 มันฮวา', '🔞 ติดเรท'].map((tab) => (
+              {['ทั้งหมด', '🇰🇷 มันฮวา', '🔞 ติดเรท', '✅ จบแล้ว'].map((tab) => (
                 <button 
                   key={tab} 
                   onClick={() => setActiveTab(tab)} 
@@ -304,6 +329,15 @@ export default function Home() {
             <MangaRow title="มังฮวาเข้าใหม่" icon={<Plus size={18}/>} items={[...processedManga].sort((a,b) => b._createdAt.localeCompare(a._createdAt)).slice(0, 10)} onCardClick={setSelectedManga} gridCols={gridCols} />
             <MangaRow title="ยอดนิยมประจำสัปดาห์" icon={<Crown size={18} fill="currentColor"/>} items={[...processedManga].sort((a,b) => (b.viewCount || 0) - (a.viewCount || 0)).slice(0, 10)} onCardClick={setSelectedManga} gridCols={gridCols} />
 
+            {/* ✨ เพิ่ม Row มังฮวาที่จบสมบูรณ์ ตรงนี้เลยครับ ✨ */}
+            <MangaRow 
+              title="มังฮวาที่จบสมบูรณ์" 
+              icon={<CheckCircle size={18} className="text-emerald-500" />} 
+              items={completedManga} 
+              onCardClick={setSelectedManga} 
+              gridCols={gridCols} 
+            />
+            
             {/* Catalog Section */}
             <section ref={catalogRef} className="pt-10 border-t border-white/5">
               <div className="flex items-center gap-3 mb-10 px-2">

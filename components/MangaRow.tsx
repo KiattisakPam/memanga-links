@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import MangaCard from "./MangaCard";
 import { ChevronRight } from "lucide-react";
+// ✨ 1. เพิ่ม Import สำหรับส่งข้อมูลสถิติ
+import { sendGAEvent } from '@next/third-parties/google'; 
 
 interface MangaRowProps {
   title: string;
@@ -10,9 +12,9 @@ interface MangaRowProps {
   items: any[];
   onCardClick: (manga: any) => void;
   onViewAll?: () => void;
-  gridCols: number; // รับค่า (1, 2, 3) จาก Resizer หน้าหลัก
-  showTime?: boolean; // เปิด/ปิด การโชว์เวลาอัปเดต
-  getRelativeTime?: (date: string) => string; // ฟังก์ชันคำนวณเวลา
+  gridCols: number;
+  showTime?: boolean;
+  getRelativeTime?: (date: string) => string;
 }
 
 export default function MangaRow({ 
@@ -27,10 +29,8 @@ export default function MangaRow({
 }: MangaRowProps) {
   if (!items || items.length === 0) return null;
 
-  // ✨ จำกัด 10 เรื่องต่อแถว เพื่อความรวดเร็วในการโหลด
   const displayItems = items.slice(0, 10);
 
-  // ✨ ปรับความกว้างการ์ดให้สัมพันธ์กับปุ่ม Resizer
   const getDynamicWidth = () => {
     switch (gridCols) {
       case 1: return "w-[185px] sm:w-[220px] md:w-[245px]"; 
@@ -40,9 +40,21 @@ export default function MangaRow({
     }
   };
 
+  // ✨ 2. สร้างฟังก์ชันดักจับการคลิกเพื่อเก็บสถิติ
+  const handleCardClick = (manga: any) => {
+    // ส่งข้อมูลไปบอก Google ว่ามีการคลิกที่เรื่องนี้ จากแถวไหน (title)
+    sendGAEvent('event', 'row_item_click', { 
+      row_title: title, 
+      manga_title: manga.title 
+    });
+    
+    // เรียกฟังก์ชันเปิด Modal เดิม
+    onCardClick(manga);
+  };
+
   return (
     <div className="w-full mb-8 md:mb-12 group/row relative px-2">
-      {/* --- 🏷️ Header แถว (Indigo Style) --- */}
+      {/* --- 🏷️ Header แถว --- */}
       <div className="flex items-center justify-between mb-4 px-1 md:px-2">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.1)] group-hover/row:border-indigo-500/40 transition-all duration-500">
@@ -70,9 +82,8 @@ export default function MangaRow({
         )}
       </div>
 
-      {/* --- 🖼️ รายการมังฮวา (Horizontal Scroll แบบพรีเมียม) --- */}
+      {/* --- 🖼️ รายการมังฮวา --- */}
       <div className="relative overflow-visible group/scroll">
-        {/* Edge Fade Effect */}
         <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#050505] via-[#050505]/20 to-transparent z-10 pointer-events-none hidden md:block opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-500" />
         
         <div 
@@ -94,8 +105,8 @@ export default function MangaRow({
             >
               <MangaCard 
                 manga={manga} 
-                onClick={() => onCardClick(manga)} 
-                /* ✨ แก้ไข: ให้โชว์เวลาอัปเดตโดยอิงจาก chapterUpdatedAt เป็นหลัก ✨ */
+                // ✨ 3. เปลี่ยนมาเรียกใช้ฟังก์ชันที่ส่งสถิติด้วย
+                onClick={() => handleCardClick(manga)} 
                 relativeTime={showTime && getRelativeTime ? getRelativeTime(manga.chapterUpdatedAt || manga._updatedAt) : null}
               />
             </motion.div>
@@ -105,39 +116,14 @@ export default function MangaRow({
         </div>
       </div>
 
-      {/* ✨ Ultimate Sleek Scrollbar CSS ✨ */}
+      {/* ✨ Scrollbar CSS ✨ */}
       <style jsx global>{`
-        /* สำหรับ Chrome, Safari และ Edge */
-        .premium-scrollbar::-webkit-scrollbar {
-          height: 5px; /* บางเฉียบ */
-          transition: all 0.3s ease;
-        }
-
-        .premium-scrollbar::-webkit-scrollbar-track {
-          background: transparent; /* รางโปร่งใส */
-          margin-inline: 10px;
-        }
-
-        .premium-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.05); /* ปกติจะจางมาก */
-          border-radius: 100px;
-        }
-
-        /* เมื่อเอาเมาส์วางในแถวนั้น แถบสกรอลล์จะเด่นขึ้น */
-        .group\/row:hover .premium-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.15);
-        }
-
-        /* เมื่อเอาเมาส์จ่อที่แถบสกรอลล์โดยตรง หรือกดลาก */
-        .premium-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(99, 102, 241, 0.6) !important; /* เปลี่ยนเป็นสี Indigo */
-        }
-
-        /* สำหรับ Firefox */
-        .premium-scrollbar {
-          scrollbar-width: thin;
-          scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
-        }
+        .premium-scrollbar::-webkit-scrollbar { height: 5px; transition: all 0.3s ease; }
+        .premium-scrollbar::-webkit-scrollbar-track { background: transparent; margin-inline: 10px; }
+        .premium-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 100px; }
+        .group\/row:hover .premium-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); }
+        .premium-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.6) !important; }
+        .premium-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 241, 0.1) transparent; }
       `}</style>
     </div>
   );
