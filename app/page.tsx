@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { 
   Search, Crown, Zap, LayoutGrid, Shuffle, 
   Plus, Square, Grid2X2, Grid3X3,
-  Calendar, Clock, CheckCircle, ExternalLink
+  Calendar, Clock, CheckCircle, ExternalLink, Lock
 } from "lucide-react";
 import Link from "next/link";
 import { Toaster } from 'sonner';
@@ -295,6 +295,37 @@ export default function Home() {
         </div>
       </div>
 
+      {/* ✨ แถบเชิญชวนปลดล็อก 18+ (ธีม Indigo เข้ากับเว็บ) */}
+      {activeTab === 'ทั้งหมด' && !isAdultConfirmed && (
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={() => setShowAgeGate(true)} 
+          className="mt-6 mb-4 mx-2 md:mx-8 cursor-pointer flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-[2rem] bg-gradient-to-r from-indigo-950/40 to-[#111] border border-indigo-500/20 hover:border-indigo-500/50 hover:bg-indigo-950/60 transition-all shadow-2xl group relative overflow-hidden"
+        >
+          {/* แสงวิ้งๆ ด้านหลัง */}
+          <div className="absolute top-0 right-0 w-32 h-full bg-indigo-500/5 blur-3xl pointer-events-none" />
+
+          <div className="flex items-center gap-4 w-full sm:w-auto relative z-10">
+            <div className="p-3 bg-indigo-500/10 rounded-2xl text-indigo-500 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300">
+              <Lock size={22} />
+            </div>
+            <div className="text-left">
+              <h4 className="text-[14px] sm:text-[16px] font-black text-white tracking-tight">
+                พบเนื้อหา <span className="text-indigo-400 italic">"ลับเฉพาะ"</span> ที่ถูกซ่อนอยู่... 🫣
+              </h4>
+              <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                ยืนยันอายุเพื่อเปิดการมองเห็นเรื่องแนว 18+ ทั้งหมดในหน้านี้
+              </p>
+            </div>
+          </div>
+          
+          <button className="w-full sm:w-auto px-7 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-white bg-indigo-600 hover:bg-indigo-500 rounded-2xl shadow-lg shadow-indigo-600/20 transition-all active:scale-95 relative z-10">
+            ปลดล็อกตอนนี้
+          </button>
+        </motion.div>
+      )}
+
       {/* --- 4. Content Area --- */}
       <div className="w-full max-w-7xl mx-auto px-2 md:px-8 mt-6">
         {!isSearching ? (
@@ -464,9 +495,10 @@ export default function Home() {
           localStorage.setItem("isAdultConfirmed", "true");
           setIsAdultConfirmed(true);
           setShowAgeGate(false);
-          setActiveTab("🔞 ติดเรท");
         }} 
-        onDecline={() => { setShowAgeGate(false); setActiveTab("🇰🇷 มันฮวา"); }} 
+        onDecline={() => { 
+          setShowAgeGate(false); 
+        }}
       />
     </div>
   );
