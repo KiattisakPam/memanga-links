@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, Clock } from "lucide-react";
-// ✨ 1. เพิ่ม Import สำหรับส่งข้อมูลสถิติ
 import { sendGAEvent } from '@next/third-parties/google'; 
+import Image from "next/image"; // ✨ 1. อัปเกรดมาใช้ Image ของ Next.js
 
 const days = [
   { label: "MON", value: "monday", thai: "จันทร์" },
@@ -16,18 +16,21 @@ const days = [
   { label: "SUN", value: "sunday", thai: "อาทิตย์" },
 ];
 
+// ✨ 2. สร้าง Helper เช็คสถานะจบให้เป็นระเบียบ
+const isMangaCompleted = (status: string) => 
+  status === 'completed' || 
+  status === '✅ จบสมบูรณ์ (Completed)';
+
 export default function UpdateSchedule({ allManga, onMangaClick }: any) {
   const todayIndex = new Date().getDay();
   const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
   const [selectedDay, setSelectedDay] = useState(dayNames[todayIndex]);
 
-  // ✨ 2. ฟังก์ชันเปลี่ยนวันพร้อมเก็บสถิติ
   const handleDayChange = (dayValue: string) => {
     setSelectedDay(dayValue);
     sendGAEvent('event', 'check_schedule_day', { day: dayValue });
   };
 
-  // ✨ 3. ฟังก์ชันคลิกมังฮวาพร้อมเก็บสถิติ
   const handleMangaClick = (m: any) => {
     sendGAEvent('event', 'schedule_item_click', { 
       manga_title: m.title,
@@ -86,15 +89,18 @@ export default function UpdateSchedule({ allManga, onMangaClick }: any) {
                 onClick={() => handleMangaClick(m)}
                 className="flex gap-4 p-3.5 bg-white/[0.02] border border-white/5 rounded-2xl hover:bg-indigo-500/10 hover:border-indigo-500/20 transition-all cursor-pointer group shadow-lg"
               >
-                <div className="relative flex-shrink-0">
-                  <img 
+                <div className="relative flex-shrink-0 w-16 h-22 rounded-xl overflow-hidden shadow-xl border border-white/10">
+                  {/* ✨ อัปเกรดมาใช้ Image ของ Next.js พร้อมคุมขนาด */}
+                  <Image 
                     src={m.coverUrl} 
-                    className="w-16 h-22 object-cover rounded-xl shadow-xl border border-white/10 group-hover:scale-105 transition-transform duration-500" 
+                    fill
+                    sizes="64px"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500" 
                     alt={m.title}
                   />
                   {/* ✨ แสดงป้ายจบแล้วถ้าสถานะเป็น Completed */}
-                  {(m.status === 'completed' || m.status === '✅ จบสมบูรณ์ (Completed)') && (
-                    <div className="absolute inset-0 bg-indigo-600/40 backdrop-blur-[2px] rounded-xl flex items-center justify-center">
+                  {isMangaCompleted(m.status) && (
+                    <div className="absolute inset-0 bg-indigo-600/40 backdrop-blur-[2px] rounded-xl flex items-center justify-center z-10">
                       <span className="text-[8px] font-black text-white bg-indigo-600 px-1.5 py-0.5 rounded shadow-lg uppercase">END</span>
                     </div>
                   )}

@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import MangaCard from "./MangaCard";
 import { ChevronRight } from "lucide-react";
-// ✨ 1. เพิ่ม Import สำหรับส่งข้อมูลสถิติ
+import Link from "next/link"; // ✨ เพิ่ม Import Link
 import { sendGAEvent } from '@next/third-parties/google'; 
 
 interface MangaRowProps {
@@ -11,10 +11,11 @@ interface MangaRowProps {
   icon: any;
   items: any[];
   onCardClick: (manga: any) => void;
-  onViewAll?: () => void;
+  viewAllLink?: string; // ✨ 1. เปลี่ยนเป็นรับ URL แทนฟังก์ชัน เพื่อใช้งานร่วมกับ Link
   gridCols: number;
   showTime?: boolean;
   getRelativeTime?: (date: string) => string;
+  isLoading?: boolean; // ✨ 2. เพิ่มตัวรับสถานะ Loading
 }
 
 export default function MangaRow({ 
@@ -22,14 +23,17 @@ export default function MangaRow({
   icon, 
   items, 
   onCardClick, 
-  onViewAll, 
+  viewAllLink, 
   gridCols,
   showTime,
-  getRelativeTime 
+  getRelativeTime,
+  isLoading 
 }: MangaRowProps) {
-  if (!items || items.length === 0) return null;
+  
+  // ✨ ถ้าไม่ได้โหลดแล้ว และไม่มีข้อมูล ถึงจะซ่อนแถวนี้
+  if (!isLoading && (!items || items.length === 0)) return null;
 
-  const displayItems = items.slice(0, 10);
+  const displayItems = items?.slice(0, 10) || [];
 
   const getDynamicWidth = () => {
     switch (gridCols) {
@@ -40,15 +44,11 @@ export default function MangaRow({
     }
   };
 
-  // ✨ 2. สร้างฟังก์ชันดักจับการคลิกเพื่อเก็บสถิติ
   const handleCardClick = (manga: any) => {
-    // ส่งข้อมูลไปบอก Google ว่ามีการคลิกที่เรื่องนี้ จากแถวไหน (title)
     sendGAEvent('event', 'row_item_click', { 
       row_title: title, 
       manga_title: manga.title 
     });
-    
-    // เรียกฟังก์ชันเปิด Modal เดิม
     onCardClick(manga);
   };
 
@@ -69,16 +69,17 @@ export default function MangaRow({
           </div>
         </div>
         
-        {onViewAll && (
-          <button 
-            onClick={onViewAll}
-            className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 hover:text-white transition-all group/btn"
+        {/* ✨ เปลี่ยนปุ่ม View All เป็น Link เพื่อประสิทธิภาพ SEO และ UX */}
+        {viewAllLink && !isLoading && (
+          <Link 
+            href={viewAllLink}
+            className="flex items-center gap-1.5 text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-gray-500 hover:text-white transition-all group/btn"
           >
             <span className="border-b border-transparent group-hover/btn:border-indigo-500 transition-all pb-0.5">
               VIEW ALL
             </span>
-            <ChevronRight size={14} className="group-hover/btn:translate-x-1.5 transition-transform text-indigo-500" />
-          </button>
+            <ChevronRight size={16} className="group-hover/btn:translate-x-1.5 transition-transform text-indigo-500" />
+          </Link>
         )}
       </div>
 
@@ -86,44 +87,81 @@ export default function MangaRow({
       <div className="relative overflow-visible group/scroll">
         <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#050505] via-[#050505]/20 to-transparent z-10 pointer-events-none hidden md:block opacity-0 group-hover/scroll:opacity-100 transition-opacity duration-500" />
         
-        <div 
-          className="flex gap-3 md:gap-4 overflow-x-auto pb-5 premium-scrollbar snap-x scroll-px-2 scroll-smooth"
-          style={{ WebkitOverflowScrolling: 'touch' }}
-        >
-          {displayItems.map((manga, index) => (
-            <motion.div 
-              key={manga.slug}
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ 
-                duration: 0.4,
-                delay: index * 0.03,
-                ease: [0.22, 1, 0.36, 1]
-              }}
-              className={`${getDynamicWidth()} flex-shrink-0 snap-start transition-all duration-500`}
-            >
-              <MangaCard 
-                manga={manga} 
-                // ✨ 3. เปลี่ยนมาเรียกใช้ฟังก์ชันที่ส่งสถิติด้วย
-                onClick={() => handleCardClick(manga)} 
-                relativeTime={showTime && getRelativeTime ? getRelativeTime(manga.chapterUpdatedAt || manga._updatedAt) : null}
-              />
-            </motion.div>
-          ))}
-          
-          <div className="w-10 flex-shrink-0" />
-        </div>
+        {/* ✨ 3. โลจิกแสดงโครงกระดูกตอนโหลด (Skeleton + Shimmer) ✨ */}
+        {isLoading ? (
+          <div className="flex gap-3 md:gap-4 overflow-hidden pb-5 px-1">
+            {[...Array(6)].map((_, i) => (
+              <div 
+                key={`skeleton-${i}`} 
+                className={`${getDynamicWidth()} flex-shrink-0 aspect-[3/4.2] bg-[#111] animate-pulse rounded-xl md:rounded-2xl border border-white/5 relative overflow-hidden`} 
+              >
+                {/* แสงวิ่งแว้บๆ (Shimmer) ให้ดูแพงขึ้น */}
+                <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div 
+            className="flex gap-3 md:gap-4 overflow-x-auto pb-5 premium-scrollbar snap-x scroll-px-2 scroll-smooth"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            {displayItems.map((manga, index) => (
+              <motion.div 
+                key={manga.slug}
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ 
+                  duration: 0.4,
+                  delay: index * 0.03,
+                  ease: [0.22, 1, 0.36, 1]
+                }}
+                className={`${getDynamicWidth()} flex-shrink-0 snap-start transition-all duration-500`}
+              >
+                <MangaCard 
+                  manga={manga} 
+                  onClick={() => handleCardClick(manga)} 
+                  relativeTime={showTime && getRelativeTime ? getRelativeTime(manga.chapterUpdatedAt || manga._updatedAt) : null}
+                  gridMode={gridCols} // ✨ 4. ส่ง gridMode ลงไปให้ MangaCard ย่อขยายป้าย
+                />
+              </motion.div>
+            ))}
+            
+            {/* ✨ 5. เพิ่มกล่อง "ดูทั้งหมด" ต่อท้ายแถวเมื่อมีมังฮวาเกิน 10 เรื่อง ✨ */}
+            {viewAllLink && items.length > 10 && (
+               <div className={`${getDynamicWidth()} flex-shrink-0 snap-start`}>
+                 <Link href={viewAllLink} className="block w-full h-full min-h-[200px] md:min-h-[260px] group/more">
+                   <div className="w-full h-full rounded-2xl bg-transparent hover:bg-[#111] flex flex-col items-center justify-center gap-3 transition-colors duration-300 border border-transparent hover:border-white/5">
+                      <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center group-hover/more:bg-indigo-500/10 transition-all duration-300">
+                         <ChevronRight size={20} className="text-gray-600 group-hover/more:text-indigo-400 group-hover/more:translate-x-0.5 transition-transform duration-300" />
+                      </div>
+                      <div className="flex flex-col items-center gap-0.5">
+                         <span className="text-xs md:text-sm font-medium text-gray-500 group-hover/more:text-white transition-colors duration-300">VIEW ALL</span>
+                         <span className="text-[10px] text-gray-600">({items.length} STORIES)</span>
+                      </div>
+                   </div>
+                 </Link>
+               </div>
+            )}
+
+            <div className="w-10 flex-shrink-0" />
+          </div>
+        )}
       </div>
 
-      {/* ✨ Scrollbar CSS ✨ */}
+      {/* ✨ Scrollbar & Shimmer CSS ✨ */}
       <style jsx global>{`
         .premium-scrollbar::-webkit-scrollbar { height: 5px; transition: all 0.3s ease; }
         .premium-scrollbar::-webkit-scrollbar-track { background: transparent; margin-inline: 10px; }
         .premium-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 100px; }
         .group\/row:hover .premium-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); }
         .premium-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.6) !important; }
-        .premium-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 241, 0.1) transparent; }
+        .premium-scrollbar { scrollbar-width: thin; scrollbar-color: rgba(99, 102, 241, 0.1) transparent; }
+        
+        /* Animation Shimmer ให้กล่อง Skeleton */
+        @keyframes shimmer {
+          100% { transform: translateX(100%); }
+        }
       `}</style>
     </div>
   );
