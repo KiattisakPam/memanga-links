@@ -108,6 +108,13 @@ const DetailedSuggestion = ({ item, onMangaSwap, getRedirectUrl }: any) => {
       });
       localStorage.setItem('manga_bookmarks', JSON.stringify(saved));
       setIsSaved(true);
+      
+      // ✨ เพิ่มส่งสถิติ GA ตรงนี้ (ดึงประเภทเรทมาด้วย)
+      sendGAEvent('event', 'add_to_bookmark', { 
+        manga_title: item.title,
+        manga_type: item.mangaType || 'normal' 
+      });
+      
       toast.success("เก็บเข้าชั้นหนังสือแล้ว! 💖");
     }
   };
@@ -253,7 +260,10 @@ export default function MangaCard({ manga, onClick, isGlobalModal, onClose, onMa
       });
       localStorage.setItem('manga_bookmarks', JSON.stringify(saved));
       setIsBookmarked(true);
-      sendGAEvent('event', 'add_to_bookmark', { manga_title: manga.title });
+      sendGAEvent('event', 'add_to_bookmark', { 
+        manga_title: manga.title,
+        manga_type: manga.mangaType || 'normal'
+      });
       toast.success("เก็บเข้าชั้นหนังสือแล้ว! 💖", { position: "bottom-center" });
     }
   };
