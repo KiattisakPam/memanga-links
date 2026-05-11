@@ -81,6 +81,7 @@ export default function Home() {
 
   const [isAdultConfirmed, setIsAdultConfirmed] = useState(false);
   const [showAgeGate, setShowAgeGate] = useState(false);
+  const [pendingSharedManga, setPendingSharedManga] = useState<any>(null);
 
   useEffect(() => {
     if (selectedManga) {
@@ -104,6 +105,7 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [allManga]);
 
+  // ✨ ดักจับลิงก์แชร์จากภายนอก (อุดรอยรั่ว 18+)
   useEffect(() => {
     if (typeof window !== 'undefined' && allManga.length > 0) {
       const params = new URLSearchParams(window.location.search);
@@ -111,7 +113,18 @@ export default function Home() {
       if (openSlug) {
         const found = allManga.find((m: any) => m.slug === openSlug);
         if (found) {
-          setSelectedManga(found);
+          // เช็คด่านอายุจากเครื่องก่อน
+          const isAdult = localStorage.getItem("isAdultConfirmed") === "true";
+          
+          if (found.mangaType === 'r18' && !isAdult) {
+            // ถ้าเป็นเรื่อง 18+ และยังไม่เคยยืนยันอายุ -> ให้เด้งป๊อปอัปถามก่อน!
+            setPendingSharedManga(found); 
+            setShowAgeGate(true);
+          } else {
+            // ถ้าเป็นเรื่องปกติ หรือ ยืนยันอายุแล้ว -> เปิดอ่านได้เลย
+            setSelectedManga(found);
+          }
+          // ลบลิงก์แชร์ออกเพื่อความสวยงาม
           window.history.replaceState({}, '', '/');
         }
       }
@@ -150,16 +163,34 @@ export default function Home() {
     }).slice(0, 10);
   }, [processedManga]);
 
+  // ✨ อุดรอยรั่ว: ตารางคิวอัปเดต
   const scheduledManga = useMemo(() => {
-    return allManga.filter((m: any) => m.updateDay === selectedDay);
-  }, [allManga, selectedDay]);
+    return allManga.filter((m: any) => {
+      if (m.updateDay !== selectedDay) return false;
+      if (!isAdultConfirmed && m.mangaType === 'r18') return false; // ดัก 18+
+      return true;
+    });
+  }, [allManga, selectedDay, isAdultConfirmed]);
 
-  const featuredManga = useMemo(() => allManga.filter((m: any) => m.isFeatured), [allManga]);
+  // ✨ อุดรอยรั่ว: แบนเนอร์เลื่อนๆ ด้านบน
+  const featuredManga = useMemo(() => {
+    return allManga.filter((m: any) => {
+      if (!m.isFeatured) return false;
+      if (!isAdultConfirmed && m.mangaType === 'r18') return false; // ดัก 18+
+      return true;
+    });
+  }, [allManga, isAdultConfirmed]);
+
+  // ✨ อุดรอยรั่ว: หมวดมังฮวาจบสมบูรณ์
   const completedManga = useMemo(() => {
-    return allManga
-      .filter((m: any) => m.status === "completed" || m.status === "✅ จบสมบูรณ์ (Completed)")
-      .slice(0, 10);
-  }, [allManga]);
+    return allManga.filter((m: any) => {
+      const isComp = m.status === "completed" || m.status === "✅ จบสมบูรณ์ (Completed)";
+      if (!isComp) return false;
+      if (!isAdultConfirmed && m.mangaType === 'r18') return false; // ดัก 18+
+      return true;
+    }).slice(0, 10);
+  }, [allManga, isAdultConfirmed]);
+
 
   const isSearching = searchQuery.trim().length > 0;
 
@@ -266,9 +297,13 @@ export default function Home() {
                 <span className="sm:hidden">แนววาย</span>
               </a> */}
 
-              {/* ✨ ปุ่มสุ่มเรื่อง (ขนาดและไอคอนย่อขยายตามหน้าจอเหมือนเว็บสาววาย + ธีม Indigo) */}
+              {/* ✨ ปุ่มสุ่มเรื่อง (อุดรอยรั่ว 18+ แล้ว) */}
               <button 
-                onClick={() => setSelectedManga(allManga[Math.floor(Math.random() * allManga.length)])} 
+                onClick={() => {
+                  // กรองเรื่อง 18+ ออกก่อนสุ่ม ถ้าผู้ใช้ยังไม่ยืนยันอายุ
+                  const safeForRandom = allManga.filter((m: any) => isAdultConfirmed ? true : m.mangaType !== 'r18');
+                  setSelectedManga(safeForRandom[Math.floor(Math.random() * safeForRandom.length)]);
+                }} 
                 className="p-3 md:p-3.5 bg-[#111] border border-white/10 rounded-2xl text-gray-400 hover:text-indigo-500 shadow-lg active:scale-90 transition-all flex-shrink-0"
                 title="สุ่มเรื่องอ่าน"
               >
@@ -495,10 +530,17 @@ export default function Home() {
           localStorage.setItem("isAdultConfirmed", "true");
           setIsAdultConfirmed(true);
           setShowAgeGate(false);
+          
+          // ✨ ถ้ามีเรื่องที่ดักรอเปิดอยู่ (กดมาจากลิงก์แชร์) ให้เด้งเปิดเรื่องนั้นเลย
+          if (pendingSharedManga) {
+            setSelectedManga(pendingSharedManga);
+            setPendingSharedManga(null); // คืนค่าความจำ
+          }
         }} 
         onDecline={() => { 
           setShowAgeGate(false); 
-        }}
+          setPendingSharedManga(null); // เคลียร์ความจำทิ้งถ้าไม่ยอมยืนยันอายุ
+        }} 
       />
     </div>
   );
